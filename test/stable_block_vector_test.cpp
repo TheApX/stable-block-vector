@@ -10,8 +10,14 @@ using ::testing::Eq;
 class TestObject {
  public:
   TestObject() { ++constructor_counter; }
-  TestObject(const TestObject& other) { ++constructor_counter; }
-  TestObject(TestObject&& other) { ++constructor_counter; }
+  TestObject(const TestObject& other) {
+    ++constructor_counter;
+    ++copy_counter;
+  }
+  TestObject(TestObject&& other) {
+    ++constructor_counter;
+    ++move_counter;
+  }
 
   ~TestObject() { ++destructor_counter; }
 
@@ -22,10 +28,14 @@ class TestObject {
 
   static int constructor_counter;
   static int destructor_counter;
+  static int copy_counter;
+  static int move_counter;
 };
 
 int TestObject::constructor_counter = 0;
 int TestObject::destructor_counter = 0;
+int TestObject::copy_counter = 0;
+int TestObject::move_counter = 0;
 
 TEST(StableBlockVectorTest, GrowWithinFirstBlock) {
   TestObject::ResetCounters();
@@ -35,13 +45,19 @@ TEST(StableBlockVectorTest, GrowWithinFirstBlock) {
     v.resize(1);
     EXPECT_THAT(TestObject::constructor_counter, Eq(1));
     EXPECT_THAT(TestObject::destructor_counter, Eq(0));
+    EXPECT_THAT(TestObject::copy_counter, Eq(0));
+    EXPECT_THAT(TestObject::move_counter, Eq(0));
 
     v.resize(3);
     EXPECT_THAT(TestObject::constructor_counter, Eq(3));
     EXPECT_THAT(TestObject::destructor_counter, Eq(0));
+    EXPECT_THAT(TestObject::copy_counter, Eq(0));
+    EXPECT_THAT(TestObject::move_counter, Eq(0));
   }
   EXPECT_THAT(TestObject::constructor_counter, Eq(3));
   EXPECT_THAT(TestObject::destructor_counter, Eq(3));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(0));
 }
 
 TEST(StableBlockVectorTest, ShrinkWithinFirstBlock) {
@@ -52,13 +68,19 @@ TEST(StableBlockVectorTest, ShrinkWithinFirstBlock) {
     v.resize(3);
     EXPECT_THAT(TestObject::constructor_counter, Eq(3));
     EXPECT_THAT(TestObject::destructor_counter, Eq(0));
+    EXPECT_THAT(TestObject::copy_counter, Eq(0));
+    EXPECT_THAT(TestObject::move_counter, Eq(0));
 
     v.resize(1);
     EXPECT_THAT(TestObject::constructor_counter, Eq(3));
     EXPECT_THAT(TestObject::destructor_counter, Eq(2));
+    EXPECT_THAT(TestObject::copy_counter, Eq(0));
+    EXPECT_THAT(TestObject::move_counter, Eq(0));
   }
   EXPECT_THAT(TestObject::constructor_counter, Eq(3));
   EXPECT_THAT(TestObject::destructor_counter, Eq(3));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(0));
 }
 
 TEST(StableBlockVectorTest, GrowToSecondBlock) {
@@ -69,13 +91,19 @@ TEST(StableBlockVectorTest, GrowToSecondBlock) {
     v.resize(1);
     EXPECT_THAT(TestObject::constructor_counter, Eq(1));
     EXPECT_THAT(TestObject::destructor_counter, Eq(0));
+    EXPECT_THAT(TestObject::copy_counter, Eq(0));
+    EXPECT_THAT(TestObject::move_counter, Eq(0));
 
     v.resize(8);
     EXPECT_THAT(TestObject::constructor_counter, Eq(8));
     EXPECT_THAT(TestObject::destructor_counter, Eq(0));
+    EXPECT_THAT(TestObject::copy_counter, Eq(0));
+    EXPECT_THAT(TestObject::move_counter, Eq(0));
   }
   EXPECT_THAT(TestObject::constructor_counter, Eq(8));
   EXPECT_THAT(TestObject::destructor_counter, Eq(8));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(0));
 }
 
 TEST(StableBlockVectorTest, ShrinkFromSecondBlock) {
@@ -86,13 +114,19 @@ TEST(StableBlockVectorTest, ShrinkFromSecondBlock) {
     v.resize(8);
     EXPECT_THAT(TestObject::constructor_counter, Eq(8));
     EXPECT_THAT(TestObject::destructor_counter, Eq(0));
+    EXPECT_THAT(TestObject::copy_counter, Eq(0));
+    EXPECT_THAT(TestObject::move_counter, Eq(0));
 
     v.resize(1);
     EXPECT_THAT(TestObject::constructor_counter, Eq(8));
     EXPECT_THAT(TestObject::destructor_counter, Eq(7));
+    EXPECT_THAT(TestObject::copy_counter, Eq(0));
+    EXPECT_THAT(TestObject::move_counter, Eq(0));
   }
   EXPECT_THAT(TestObject::constructor_counter, Eq(8));
   EXPECT_THAT(TestObject::destructor_counter, Eq(8));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(0));
 }
 
 TEST(StableBlockVectorTest, PointersStable) {
