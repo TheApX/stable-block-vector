@@ -12,14 +12,37 @@ class stable_block_vector {
   class iterator {
    public:
     T& operator*() { return owner_->at(pos_); }
-    iterator operator--();
-    iterator operator--(int);
-    iterator operator++();
-    iterator operator++(int);
+    T* operator->() { return &owner_->at(pos_); }
+
+    iterator operator--() {
+      --pos_;
+      return *this;
+    }
+    iterator operator--(int) {
+      iterator result = *this;
+      --pos_;
+      return result;
+    }
+    iterator operator++() {
+      ++pos_;
+      return *this;
+    }
+    iterator operator++(int) {
+      iterator result = *this;
+      ++pos_;
+      return result;
+    }
+
+    bool operator==(const iterator& other) const {
+      return this->owner_ == other.owner_ && this->pos_ == other.pos_;
+    }
+    bool operator!=(const iterator& other) const { return !operator==(other); }
+
+    iterator(const iterator& other) : owner_(other.owner_), pos_(other.pos_) {}
+    iterator(stable_block_vector<T, kBlockSize>* owner, size_t pos)
+        : owner_(owner), pos_(pos) {}
 
    private:
-    iterator(stable_block_vector<T, kBlockSize>* owner, size_t index);
-
     stable_block_vector<T, kBlockSize>* owner_;
     size_t pos_ = 0;
   };
@@ -56,7 +79,7 @@ stable_block_vector<T, kBlockSize>::stable_block_vector() {
 
 template <class T, size_t kBlockSize>
 T& stable_block_vector<T, kBlockSize>::at(size_t pos) {
-  if (pos >= size_) {
+  if (pos >= size_ || pos < 0) {
     throw std::out_of_range("pos");
   }
 

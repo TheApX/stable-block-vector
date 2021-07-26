@@ -379,4 +379,102 @@ TEST_F(StableBlockVectorTest, PushBackToBeginningOfSecondBlockMove) {
   EXPECT_THAT(TestObject::move_counter, Eq(1));
 }
 
+TEST_F(StableBlockVectorTest, IteratorPreIncrement) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    constexpr size_t size = 13;
+    for (int i = 0; i < size; ++i) {
+      v.push_back(TestObject(i));
+    }
+
+    auto it = v.begin();
+    for (int i = 0; i < size; ++i) {
+      EXPECT_THAT(it->tag, Eq(i));
+      auto before = it;
+      auto result = ++it;
+      EXPECT_THAT(result, Eq(it));
+    }
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(13));
+}
+
+TEST_F(StableBlockVectorTest, IteratorPostIncrement) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    constexpr size_t size = 13;
+    for (int i = 0; i < size; ++i) {
+      v.push_back(TestObject(i));
+    }
+
+    auto it = v.begin();
+    for (int i = 0; i < size; ++i) {
+      EXPECT_THAT(it->tag, Eq(i));
+      auto before = it;
+      auto result = it++;
+      EXPECT_THAT(result, Eq(before));
+    }
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(13));
+}
+
+TEST_F(StableBlockVectorTest, IteratorPreDecrement) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    constexpr size_t size = 13;
+    for (int i = 0; i < size; ++i) {
+      v.push_back(TestObject(i));
+    }
+
+    auto it = v.end();
+    for (int i = 0; i < size; ++i) {
+      auto before = it;
+      auto result = --it;
+      EXPECT_THAT(result, Eq(it));
+
+      EXPECT_THAT(it->tag, Eq(size - i - 1));
+    }
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(13));
+}
+
+TEST_F(StableBlockVectorTest, IteratorPostDecrement) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    constexpr size_t size = 13;
+    for (int i = 0; i < size; ++i) {
+      v.push_back(TestObject(i));
+    }
+
+    auto it = v.end();
+    for (int i = 0; i < size; ++i) {
+      auto before = it;
+      auto result = it--;
+      EXPECT_THAT(result, Eq(before));
+
+      EXPECT_THAT(it->tag, Eq(size - i - 1));
+    }
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(13));
+}
+
 }  // namespace
