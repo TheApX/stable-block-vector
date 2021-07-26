@@ -37,8 +37,12 @@ int TestObject::destructor_counter = 0;
 int TestObject::copy_counter = 0;
 int TestObject::move_counter = 0;
 
-TEST(StableBlockVectorTest, GrowWithinFirstBlock) {
-  TestObject::ResetCounters();
+class StableBlockVectorTest : public testing::Test {
+ public:
+  StableBlockVectorTest() { TestObject::ResetCounters(); }
+};
+
+TEST_F(StableBlockVectorTest, GrowWithinFirstBlock) {
   {
     theapx::stable_block_vector<TestObject, 5> v;
 
@@ -60,8 +64,7 @@ TEST(StableBlockVectorTest, GrowWithinFirstBlock) {
   EXPECT_THAT(TestObject::move_counter, Eq(0));
 }
 
-TEST(StableBlockVectorTest, ShrinkWithinFirstBlock) {
-  TestObject::ResetCounters();
+TEST_F(StableBlockVectorTest, ShrinkWithinFirstBlock) {
   {
     theapx::stable_block_vector<TestObject, 5> v;
 
@@ -83,8 +86,7 @@ TEST(StableBlockVectorTest, ShrinkWithinFirstBlock) {
   EXPECT_THAT(TestObject::move_counter, Eq(0));
 }
 
-TEST(StableBlockVectorTest, GrowToSecondBlock) {
-  TestObject::ResetCounters();
+TEST_F(StableBlockVectorTest, GrowToSecondBlock) {
   {
     theapx::stable_block_vector<TestObject, 5> v;
 
@@ -106,8 +108,7 @@ TEST(StableBlockVectorTest, GrowToSecondBlock) {
   EXPECT_THAT(TestObject::move_counter, Eq(0));
 }
 
-TEST(StableBlockVectorTest, ShrinkFromSecondBlock) {
-  TestObject::ResetCounters();
+TEST_F(StableBlockVectorTest, ShrinkFromSecondBlock) {
   {
     theapx::stable_block_vector<TestObject, 5> v;
 
@@ -129,9 +130,7 @@ TEST(StableBlockVectorTest, ShrinkFromSecondBlock) {
   EXPECT_THAT(TestObject::move_counter, Eq(0));
 }
 
-TEST(StableBlockVectorTest, PointersStable) {
-  TestObject::ResetCounters();
-
+TEST_F(StableBlockVectorTest, PointersStable) {
   theapx::stable_block_vector<TestObject, 5> v;
 
   const int max_count = 100;
@@ -153,6 +152,59 @@ TEST(StableBlockVectorTest, PointersStable) {
       EXPECT_THAT(addresses[j], Eq(&v[j])) << " i = " << i << "  j = " << j;
     }
   }
+}
+
+TEST_F(StableBlockVectorTest, CapacityInitiallyZero) {
+  theapx::stable_block_vector<TestObject, 5> v;
+
+  EXPECT_THAT(v.capacity(), Eq(0));
+}
+
+TEST_F(StableBlockVectorTest, CapacityPartialBlock) {
+  theapx::stable_block_vector<TestObject, 5> v;
+
+  v.reserve(3);
+  EXPECT_THAT(v.capacity(), Eq(5));
+  v.reserve(3);
+  EXPECT_THAT(v.capacity(), Eq(5));
+}
+
+TEST_F(StableBlockVectorTest, CapacityOneBlock) {
+  theapx::stable_block_vector<TestObject, 5> v;
+
+  v.reserve(5);
+  EXPECT_THAT(v.capacity(), Eq(5));
+  v.reserve(5);
+  EXPECT_THAT(v.capacity(), Eq(5));
+}
+
+TEST_F(StableBlockVectorTest, CapacityTwoBlocksExactly) {
+  theapx::stable_block_vector<TestObject, 5> v;
+
+  v.reserve(5);
+  EXPECT_THAT(v.capacity(), Eq(5));
+  v.reserve(10);
+  EXPECT_THAT(v.capacity(), Eq(10));
+  v.reserve(10);
+  EXPECT_THAT(v.capacity(), Eq(10));
+}
+
+TEST_F(StableBlockVectorTest, CapacityMultipleBlocks) {
+  theapx::stable_block_vector<TestObject, 5> v;
+
+  v.reserve(13);
+  EXPECT_THAT(v.capacity(), Eq(15));
+  v.reserve(13);
+  EXPECT_THAT(v.capacity(), Eq(15));
+}
+
+TEST_F(StableBlockVectorTest, CapacityDoesntShrink) {
+  theapx::stable_block_vector<TestObject, 5> v;
+
+  v.reserve(13);
+  EXPECT_THAT(v.capacity(), Eq(15));
+  v.reserve(3);
+  EXPECT_THAT(v.capacity(), Eq(15));
 }
 
 }  // namespace

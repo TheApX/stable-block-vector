@@ -67,7 +67,7 @@ T& stable_block_vector<T, kBlockSize>::at(size_t pos) {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::reserve(size_t s) {
-  size_t blocks_needed = s / kBlockSize + 1;
+  size_t blocks_needed = s / kBlockSize + (s % kBlockSize == 0 ? 0 : 1);
   blocks_.reserve(blocks_needed);
   while (blocks_.size() < blocks_needed) {
     std::unique_ptr<std::vector<T>> new_block =
@@ -84,7 +84,7 @@ void stable_block_vector<T, kBlockSize>::resize(size_t s) {
     return;
   }
 
-  reserve(s);
+  reserve(s + 1);
 
   size_t old_full_blocks_count = size_ / kBlockSize;
   size_t old_block_pos = size_ % kBlockSize;
