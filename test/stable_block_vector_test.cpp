@@ -9,22 +9,42 @@ using ::testing::Eq;
 
 class TestObject {
  public:
-  TestObject() { ++constructor_counter; }
+  TestObject() {
+    ++constructor_counter;
+    std::cout << "Construct: " << this << std::endl;
+  }
   TestObject(const TestObject& other) {
     ++constructor_counter;
     ++copy_counter;
+    tag = other.tag;
+    std::cout << "Construct copy: " << this << " from " << &other << std::endl;
   }
   TestObject(TestObject&& other) {
     ++constructor_counter;
     ++move_counter;
+    tag = other.tag;
+    std::cout << "Construct move: " << this << " from " << &other << std::endl;
+  }
+  explicit TestObject(int t) {
+    ++constructor_counter;
+    tag = t;
+    std::cout << "Construct with value: " << this << " value " << tag
+              << std::endl;
   }
 
-  ~TestObject() { ++destructor_counter; }
+  ~TestObject() {
+    ++destructor_counter;
+    std::cout << "Destruct: " << this << std::endl;
+  }
 
   static void ResetCounters() {
     constructor_counter = 0;
     destructor_counter = 0;
+    copy_counter = 0;
+    move_counter = 0;
   }
+
+  int tag = 0;
 
   static int constructor_counter;
   static int destructor_counter;
@@ -205,6 +225,158 @@ TEST_F(StableBlockVectorTest, CapacityDoesntShrink) {
   EXPECT_THAT(v.capacity(), Eq(15));
   v.reserve(3);
   EXPECT_THAT(v.capacity(), Eq(15));
+}
+
+// push_back with copy
+
+TEST_F(StableBlockVectorTest, PushBackToEmpty) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    TestObject obj(123);
+    v.push_back(obj);
+    EXPECT_THAT(v.capacity(), Eq(5));
+    EXPECT_THAT(v.size(), Eq(1));
+    EXPECT_THAT(v[0].tag, Eq(123));
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(2));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(2));
+  EXPECT_THAT(TestObject::copy_counter, Eq(1));
+  EXPECT_THAT(TestObject::move_counter, Eq(0));
+}
+
+TEST_F(StableBlockVectorTest, PushBackToFirstBlock) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    v.resize(2);
+
+    TestObject obj(123);
+    v.push_back(obj);
+    EXPECT_THAT(v.capacity(), Eq(5));
+    EXPECT_THAT(v.size(), Eq(3));
+    EXPECT_THAT(v[2].tag, Eq(123));
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(4));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(4));
+  EXPECT_THAT(TestObject::copy_counter, Eq(1));
+  EXPECT_THAT(TestObject::move_counter, Eq(0));
+}
+
+TEST_F(StableBlockVectorTest, PushBackToEndOfFirstBlock) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    v.resize(4);
+
+    TestObject obj(123);
+    v.push_back(obj);
+    EXPECT_THAT(v.capacity(), Eq(5));
+    EXPECT_THAT(v.size(), Eq(5));
+    EXPECT_THAT(v[4].tag, Eq(123));
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(6));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(6));
+  EXPECT_THAT(TestObject::copy_counter, Eq(1));
+  EXPECT_THAT(TestObject::move_counter, Eq(0));
+}
+
+TEST_F(StableBlockVectorTest, PushBackToBeginningOfSecondBlock) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    v.resize(5);
+
+    TestObject obj(123);
+    v.push_back(obj);
+    EXPECT_THAT(v.capacity(), Eq(10));
+    EXPECT_THAT(v.size(), Eq(6));
+    EXPECT_THAT(v[5].tag, Eq(123));
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(7));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(7));
+  EXPECT_THAT(TestObject::copy_counter, Eq(1));
+  EXPECT_THAT(TestObject::move_counter, Eq(0));
+}
+
+// push_back with move
+
+TEST_F(StableBlockVectorTest, PushBackToEmptyMove) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    TestObject obj(123);
+    v.push_back(std::move(obj));
+    EXPECT_THAT(v.capacity(), Eq(5));
+    EXPECT_THAT(v.size(), Eq(1));
+    EXPECT_THAT(v[0].tag, Eq(123));
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(2));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(2));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(1));
+}
+
+TEST_F(StableBlockVectorTest, PushBackToFirstBlockMove) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    v.resize(2);
+
+    TestObject obj(123);
+    v.push_back(std::move(obj));
+    EXPECT_THAT(v.capacity(), Eq(5));
+    EXPECT_THAT(v.size(), Eq(3));
+    EXPECT_THAT(v[2].tag, Eq(123));
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(4));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(4));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(1));
+}
+
+TEST_F(StableBlockVectorTest, PushBackToEndOfFirstBlockMove) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    v.resize(4);
+
+    TestObject obj(123);
+    v.push_back(std::move(obj));
+    EXPECT_THAT(v.capacity(), Eq(5));
+    EXPECT_THAT(v.size(), Eq(5));
+    EXPECT_THAT(v[4].tag, Eq(123));
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(6));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(6));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(1));
+}
+
+TEST_F(StableBlockVectorTest, PushBackToBeginningOfSecondBlockMove) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    v.resize(5);
+
+    TestObject obj(123);
+    v.push_back(std::move(obj));
+    EXPECT_THAT(v.capacity(), Eq(10));
+    EXPECT_THAT(v.size(), Eq(6));
+    EXPECT_THAT(v[5].tag, Eq(123));
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(7));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(7));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(1));
 }
 
 }  // namespace

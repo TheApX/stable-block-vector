@@ -107,4 +107,28 @@ void stable_block_vector<T, kBlockSize>::resize(size_t s) {
   size_ = s;
 }
 
+template <class T, size_t kBlockSize>
+void stable_block_vector<T, kBlockSize>::push_back(T& v) {
+  size_t new_size = size() + 1;
+  reserve(new_size);
+  size_t new_item_block = new_size / kBlockSize;
+  if (new_size % kBlockSize == 0) {
+    --new_item_block;
+  }
+  blocks_[new_item_block]->push_back(v);
+  size_ = new_size;
+}
+
+template <class T, size_t kBlockSize>
+void stable_block_vector<T, kBlockSize>::push_back(T&& v) {
+  size_t new_size = size() + 1;
+  reserve(new_size);
+  size_t new_item_block = new_size / kBlockSize;
+  if (new_size % kBlockSize == 0) {
+    --new_item_block;
+  }
+  blocks_[new_item_block]->push_back(std::move(v));
+  size_ = new_size;
+}
+
 }  // namespace theapx
