@@ -477,4 +477,26 @@ TEST_F(StableBlockVectorTest, IteratorPostDecrement) {
   EXPECT_THAT(TestObject::move_counter, Eq(13));
 }
 
+TEST_F(StableBlockVectorTest, IteratorRangeFor) {
+  {
+    theapx::stable_block_vector<TestObject, 5> v;
+
+    constexpr size_t size = 13;
+    for (int i = 0; i < size; ++i) {
+      v.push_back(TestObject(i));
+    }
+
+    int j = 0;
+    for (const TestObject& obj : v) {
+      EXPECT_THAT(obj.tag, Eq(j));
+      ++j;
+    }
+  }
+
+  EXPECT_THAT(TestObject::constructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::destructor_counter, Eq(26));
+  EXPECT_THAT(TestObject::copy_counter, Eq(0));
+  EXPECT_THAT(TestObject::move_counter, Eq(13));
+}
+
 }  // namespace
