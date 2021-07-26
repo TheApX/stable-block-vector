@@ -53,7 +53,9 @@ class stable_block_vector {
   iterator end() { return iterator(this, size_); }
 
   T& at(size_t pos);
+  const T& at(size_t pos) const;
   T& operator[](size_t pos) { return at(pos); }
+  const T& operator[](size_t pos) const { return at(pos); }
 
   size_t capacity() const { return capacity_; }
   size_t size() const { return size_; }
@@ -79,6 +81,17 @@ stable_block_vector<T, kBlockSize>::stable_block_vector() {
 
 template <class T, size_t kBlockSize>
 T& stable_block_vector<T, kBlockSize>::at(size_t pos) {
+  if (pos >= size_ || pos < 0) {
+    throw std::out_of_range("pos");
+  }
+
+  size_t block = pos / kBlockSize;
+  size_t block_pos = pos % kBlockSize;
+  return blocks_[block]->at(block_pos);
+}
+
+template <class T, size_t kBlockSize>
+const T& stable_block_vector<T, kBlockSize>::at(size_t pos) const {
   if (pos >= size_ || pos < 0) {
     throw std::out_of_range("pos");
   }
