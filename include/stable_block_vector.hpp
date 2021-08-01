@@ -68,7 +68,7 @@ class stable_block_vector {
   void push_back(T&& v);
 
  private:
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
   std::vector<std::unique_ptr<std::vector<T>>> blocks_;
   size_t capacity_ = 0;
   size_t size_ = 0;
