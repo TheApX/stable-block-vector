@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <vector>
 
@@ -67,9 +68,12 @@ class stable_block_vector {
   void push_back(T&& v);
 
  private:
+  std::mutex mutex_;
   std::vector<std::unique_ptr<std::vector<T>>> blocks_;
   size_t capacity_ = 0;
   size_t size_ = 0;
+
+  void reserve_impl(size_t s);
 };
 
 // -----------------------------------------------------------------------------
@@ -81,6 +85,8 @@ stable_block_vector<T, kBlockSize>::stable_block_vector() {
 
 template <class T, size_t kBlockSize>
 T& stable_block_vector<T, kBlockSize>::at(size_t pos) {
+  std::lock_guard lock(mutex_);
+
   if (pos >= size_ || pos < 0) {
     throw std::out_of_range("pos");
   }
@@ -92,6 +98,8 @@ T& stable_block_vector<T, kBlockSize>::at(size_t pos) {
 
 template <class T, size_t kBlockSize>
 const T& stable_block_vector<T, kBlockSize>::at(size_t pos) const {
+  std::lock_guard lock(mutex_);
+
   if (pos >= size_ || pos < 0) {
     throw std::out_of_range("pos");
   }
@@ -103,6 +111,12 @@ const T& stable_block_vector<T, kBlockSize>::at(size_t pos) const {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::reserve(size_t s) {
+  std::lock_guard lock(mutex_);
+  reserve_impl(s);
+}
+
+template <class T, size_t kBlockSize>
+void stable_block_vector<T, kBlockSize>::reserve_impl(size_t s) {
   size_t blocks_needed = s / kBlockSize + (s % kBlockSize == 0 ? 0 : 1);
   blocks_.reserve(blocks_needed);
   while (blocks_.size() < blocks_needed) {
@@ -116,11 +130,13 @@ void stable_block_vector<T, kBlockSize>::reserve(size_t s) {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::resize(size_t s) {
+  std::lock_guard lock(mutex_);
+
   if (s == size_) {
     return;
   }
 
-  reserve(s + 1);
+  reserve_impl(s + 1);
 
   size_t old_full_blocks_count = size_ / kBlockSize;
   size_t old_block_pos = size_ % kBlockSize;
@@ -145,8 +161,10 @@ void stable_block_vector<T, kBlockSize>::resize(size_t s) {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::push_back(T& v) {
+  std::lock_guard lock(mutex_);
+
   size_t new_size = size() + 1;
-  reserve(new_size);
+  reserve_impl(new_size);
   size_t new_item_block = new_size / kBlockSize;
   if (new_size % kBlockSize == 0) {
     --new_item_block;
@@ -157,8 +175,10 @@ void stable_block_vector<T, kBlockSize>::push_back(T& v) {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::push_back(T&& v) {
+  std::lock_guard lock(mutex_);
+
   size_t new_size = size() + 1;
-  reserve(new_size);
+  reserve_impl(new_size);
   size_t new_item_block = new_size / kBlockSize;
   if (new_size % kBlockSize == 0) {
     --new_item_block;
