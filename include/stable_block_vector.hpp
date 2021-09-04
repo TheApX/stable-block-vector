@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <mutex>
 #include <stdexcept>
 #include <vector>
 
@@ -68,7 +67,6 @@ class stable_block_vector {
   void push_back(T&& v);
 
  private:
-  mutable std::mutex mutex_;
   std::vector<std::unique_ptr<std::vector<T>>> blocks_;
   size_t capacity_ = 0;
   size_t size_ = 0;
@@ -85,8 +83,6 @@ stable_block_vector<T, kBlockSize>::stable_block_vector() {
 
 template <class T, size_t kBlockSize>
 T& stable_block_vector<T, kBlockSize>::at(size_t pos) {
-  std::lock_guard lock(mutex_);
-
   if (pos >= size_ || pos < 0) {
     throw std::out_of_range("pos");
   }
@@ -98,8 +94,6 @@ T& stable_block_vector<T, kBlockSize>::at(size_t pos) {
 
 template <class T, size_t kBlockSize>
 const T& stable_block_vector<T, kBlockSize>::at(size_t pos) const {
-  std::lock_guard lock(mutex_);
-
   if (pos >= size_ || pos < 0) {
     throw std::out_of_range("pos");
   }
@@ -111,7 +105,6 @@ const T& stable_block_vector<T, kBlockSize>::at(size_t pos) const {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::reserve(size_t s) {
-  std::lock_guard lock(mutex_);
   reserve_impl(s);
 }
 
@@ -130,8 +123,6 @@ void stable_block_vector<T, kBlockSize>::reserve_impl(size_t s) {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::resize(size_t s) {
-  std::lock_guard lock(mutex_);
-
   if (s == size_) {
     return;
   }
@@ -161,8 +152,6 @@ void stable_block_vector<T, kBlockSize>::resize(size_t s) {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::push_back(T& v) {
-  std::lock_guard lock(mutex_);
-
   size_t new_size = size() + 1;
   reserve_impl(new_size);
   size_t new_item_block = new_size / kBlockSize;
@@ -175,8 +164,6 @@ void stable_block_vector<T, kBlockSize>::push_back(T& v) {
 
 template <class T, size_t kBlockSize>
 void stable_block_vector<T, kBlockSize>::push_back(T&& v) {
-  std::lock_guard lock(mutex_);
-
   size_t new_size = size() + 1;
   reserve_impl(new_size);
   size_t new_item_block = new_size / kBlockSize;
